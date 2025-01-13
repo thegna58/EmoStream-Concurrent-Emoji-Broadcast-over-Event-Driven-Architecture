@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Sender</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        form {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            width: 300px;
+            text-align: center;
+        }
+        label {
+            margin-top: 10px;
+            display: block;
+            font-weight: bold;
+        }
+        select, button {
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #emoji_display {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .emoji {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .emoji:last-child {
+            border-bottom: none;
+        }
+        #user_id_display {
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
+    <script>
+        const socketUrls = [
+            "ws://localhost:9001",
+            "ws://localhost:9002",
+            "ws://localhost:9003"
+        ];
+        let userId = generateUserId(); // Generate a unique user ID
+
+        // Function to connect to all WebSocket servers
+        function connectToWebSockets() {
+            socketUrls.forEach(url => {
+                const socket = new WebSocket(url);
+
+                socket.onopen = () => {
+                    console.log(`Connected to WebSocket server at ${url}`);
+                };
+
+                socket.onmessage = (event) => {
+                    const emojiData = JSON.parse(event.data);
+                    updateUI(emojiData);
+                };
+
+                socket.onerror = (error) => {
+                    console.error(`WebSocket error at ${url}:`, error);
+                };
+
+                socket.onclose = () => {
+                    console.log(`WebSocket connection closed at ${url}`);
+                };
+            });
+        }
+
+        function updateUI(emojiData) {
+            const displayArea = document.getElementById('emoji_display');
+            const newEmoji = document.createElement('div');
+            newEmoji.className = 'emoji';
+            newEmoji.textContent = `Emoji: ${emojiData.emoji_type}`;
+            displayArea.appendChild(newEmoji);
+        }
+
+        async function sendEmoji() {
+            const emojiType = document.getElementById('emoji_type').value;
+            const timestamp = new Date().toISOString(); // Capture the current time in ISO format
+
+            const response = await fetch('http://localhost:5001/emoji', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_id: userId, emoji_type: emojiType, timestamp: timestamp })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert('Error: ' + JSON.stringify(errorData));
+            } else {
+                const result = await response.json();
+                alert(JSON.stringify(result));
+            }
+        }
+
+        function generateUserId() {
+            // Generate a random numeric user ID
+            return Math.floor(Math.random() * 1000000000); // Random number between 0 and 999999999
+        }
+
+        // Display the generated user ID on the page
+        window.onload = () => {
+            document.getElementById('user_id_display').textContent = `User ID: ${userId}`;
+            connectToWebSockets(); // Connect to WebSocket servers on page load
+        };
+    </script>
+</head>
+<body>
+    <h1>Send Emoji Data</h1>
+    <div id="user_id_display"></div> <!-- Display the generated user ID -->
+    <form onsubmit="event.preventDefault(); sendEmoji();">
+        <label for="emoji_type">Emoji Type:</label>
+        <select id="emoji_type" required>
+            <option value="happy">Happy</option>
+            <option value="sad">Sad</option>
+            <option value="neutral">Neutral</option>
+            <option value="pensive">Pensive</option>
+            <option value="heart">Heart</option>
+        </select><br>
+        
+        <button type="submit">Send Emoji</button>
+    </form>
+    <h2>Received Emojis:</h2>
+    <div id="emoji_display"></div> <!-- This div will display the received emoji data -->
+</body>
+</html>

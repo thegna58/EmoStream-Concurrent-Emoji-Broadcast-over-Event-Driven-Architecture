@@ -1,0 +1,76 @@
+Step 1: PREREQUISITES:
+Create Kafka Topics
+Go to directory /usr/local/kafka/bin
+Open another terminal window and create the required Kafka topics:
+
+#Create processed_emoji_data Topic:
+./kafka-topics.sh --create --topic processed_emoji_data --bootstrap-server localhost:9092 --partitions 3 --replication-factor 1
+
+#Create aggregated_emoji_data Topic:
+./kafka-topics.sh --create --topic aggregated_emoji_data --bootstrap-server localhost:9092 --partitions 3 --replication-factor 1
+
+#Create emoji_data Topic:
+./kafka-topics.sh --create --topic emoji_data --bootstrap-server localhost:9092 --partitions 3 --replication-factor 1
+
+#Verify the Topics: To check if the topics have been created successfully, list all topics:
+./kafka-topics.sh --list --bootstrap-server localhost:9092
+
+#Mandatory installations
+
+1. Install Node.js:
+     sudo apt install nodejs npm
+
+2. Install BodyParser:
+     npm install express kafka-node body-parser
+     
+2. Install WebSocket Library:
+     npm install ws
+
+3. Install weboscket library:
+     pip install websockets
+
+
+Step 2: PROCEDURE TO RUN THE FILES ON THE TERMINAL:  
+1. Open terminals and run the following commands in this specific order ONLY
+
+2. Open index_ver2.html file 
+3. TERMINAL 1 - node server.js
+4. TERMINAL 2 - node consumer.js
+5. TERMINAL 3 - python3 spark3.py
+
+# These are to keep the websocket server on and running. So messages from each of the cluster publishers are sent to this server,then these messages are broadcasted by the server to all the registered cluster subscribers.
+
+#9001, 9002, 9003 are the PORT numbers where the node processes are running at. 
+6. TERMINAL 1 - node websocket_server.js 9001   
+7. TERMINAL 2 - node websocket_server.js 9002    
+8. TERMINAL 3 - node websocket_server.js 9003
+
+#To run cluster subscribers
+#1, 2, 3 are the cluster_id to which the subscriber belongs to.
+9. TERMINAL 4 - python3 cluster_subscriber.py 1     
+10. TERMINAL 5 - python3 cluster_subscriber.py 2
+11. TERMINAL 6 - python3 cluster_subscriber.py 3
+
+#To run the cluster publishers
+#FORMAT - python3 cluster_publisher.py <cluster_id> <websocket_host> <websocket_port>
+12. TERMINAL 7 - python3 cluster_publisher.py 1 localhost 9001  
+13. TERMINAL 8 - python3 cluster_publisher.py 2 localhost 9002
+14. TERMINAL 9 - python3 cluster_publisher.py 3 localhost 9003
+
+#To run tthe main publisher script to start sending messages to the processed_emoji_data topic.
+15.TERMINAL 10 - python main_pub2.py 
+
+#To run the spark job (for now, u can give the path of emoji_data.json in this file, which is being used by spark job)
+16.TERMINAL 11 - spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0 spark3.py
+(this has to be run only first time - IMPORTANT)
+
+Later we can just run  
+python3 spark3.py
+
+
+
+SOME HELPFUL COMMANDS:
+
+ps aux | grep node - to check the list of node processes running 
+sudo kill -9 <pid> - to kill the process
+netstat -tuln | grep 9001 - to check if a process is running on a particular PORT (here PORT=9001)
